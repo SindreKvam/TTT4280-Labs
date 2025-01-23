@@ -1,10 +1,14 @@
 """This module contains a remote procedure call (RPC) service to read from ADCs."""
 
 from subprocess import call
+import logging
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
 
 
 class AdcSamplingService(rpyc.Service):
@@ -18,11 +22,11 @@ class AdcSamplingService(rpyc.Service):
 
     def on_connect(self, conn):
         # code that runs when a connection is created
-        pass
+        logger.info("Connection established")
 
     def on_disconnect(self, conn):
         # code that runs after the connection has already closed
-        pass
+        logger.info("Connection closed")
 
     def __parse_binary(self, filename: str, channels: int = 5) -> list[float]:
         """
@@ -58,6 +62,9 @@ class AdcSamplingService(rpyc.Service):
 
         # Parse the binary file
         return self.__parse_binary(filename)
+
+    def exposed_get_answer(self):
+        return 42
 
 
 if __name__ == "__main__":
