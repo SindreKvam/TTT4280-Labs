@@ -13,10 +13,16 @@ sudo make install
 ```
 
 
-## Compile adc_sampler
+## adc_sampler
 
+To compile, run the following commands:
 ```
 cd src
 make
+```
+
+Usage is as following:
+```
+sudo adc_sampler <sample-count> [output]
 ```
 
