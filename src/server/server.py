@@ -59,7 +59,13 @@ class AdcSamplingService(rpyc.Service):
         """
 
         # Run src/adc_sampler to generate a binary file
-        call([pathlib.Path(__file__).parent / "../adc_sampler", sample_count, filename])
+        call(
+            [
+                pathlib.Path(__file__).parent / "../adc_sampler",
+                str(sample_count),
+                filename,
+            ]
+        )
 
         # Parse the binary file
         return self.__parse_binary(filename)
