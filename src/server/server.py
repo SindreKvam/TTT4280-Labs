@@ -77,7 +77,7 @@ class AdcSamplingService(rpyc.Service):
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
-    connectionConfig = {"allow_public_attrs": True}
+    connectionConfig = {"allow_public_attrs": True, "allow_pickle": True}
     t = ThreadedServer(AdcSamplingService, port=18861, protocol_config=connectionConfig)
 
     t.start()
