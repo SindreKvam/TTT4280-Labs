@@ -38,5 +38,5 @@ def parse_binary_result(path, channels=5):
 # Import data from bin file
 if __name__ == "__main__":
     sample_period, data = parse_binary_result(
-        sys.argv[1] if len(sys.argv > 1) else "foo.bin"
+        sys.argv[1] if len(sys.argv) > 1 else "foo.bin"
     )
