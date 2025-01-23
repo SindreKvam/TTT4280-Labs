@@ -173,3 +173,6 @@ cython_debug/
 
 # Ignore output c file
 src/adc_sampler
+
+# Generated data
+*.bin

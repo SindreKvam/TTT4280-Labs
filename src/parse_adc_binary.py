@@ -40,3 +40,8 @@ if __name__ == "__main__":
     sample_period, data = parse_binary_result(
         sys.argv[1] if len(sys.argv) > 1 else "foo.bin"
     )
+
+    print(f"Sample period: {sample_period}")
+    print(f"Data shape: {data.shape}")
+    print(f"Data: {data}")
+
