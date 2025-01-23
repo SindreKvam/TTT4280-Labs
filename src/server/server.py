@@ -50,11 +50,11 @@ class AdcSamplingService(rpyc.Service):
 
     def exposed_run_adc_sample(
         self, sample_count: int = 1024, filename: str = "foo.bin"
-    ) -> list[float]:
+    ) -> list[float, np.ndarray]:
         """Read from the ADCs and return the data.
 
         Returns:
-            list[float]: where the first argument is the samples.
+            list[float, np.ndarray]: where the first argument is the samples.
             And the second is a list of floats representing the data read from the ADCs.
         """
 
@@ -76,5 +76,8 @@ class AdcSamplingService(rpyc.Service):
 
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
-    t = ThreadedServer(AdcSamplingService, port=18861)
+
+    connectionConfig = {"allow_public_attrs": True}
+    t = ThreadedServer(AdcSamplingService, port=18861, protocol_config=connectionConfig)
+
     t.start()
