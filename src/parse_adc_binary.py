@@ -44,4 +44,3 @@ if __name__ == "__main__":
     print(f"Sample period: {sample_period}")
     print(f"Data shape: {data.shape}")
     print(f"Data: {data}")
-
