@@ -2,6 +2,7 @@
 
 from subprocess import call
 import logging
+import pathlib
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
@@ -58,7 +59,7 @@ class AdcSamplingService(rpyc.Service):
         """
 
         # Run src/adc_sampler to generate a binary file
-        call(["../adc_sampler", sample_count, filename])
+        call([pathlib.Path(__file__).parent / "../adc_sampler", sample_count, filename])
 
         # Parse the binary file
         return self.__parse_binary(filename)
@@ -68,5 +69,6 @@ class AdcSamplingService(rpyc.Service):
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
     t = ThreadedServer(AdcSamplingService, port=18861)
     t.start()
