@@ -32,7 +32,7 @@ def dc_block(data: np.ndarray) -> np.ndarray:
 
 if __name__ == "__main__":
     conn = rpyc.connect("rpi32.local", 18861, config={"allow_pickle": True})
-    sample_period, data = conn.root.run_adc_sample()
+    sample_period, data = conn.root.run_adc_sample(31_250)
 
     # Make a local copy of the data
     local_data = np.array(data)
