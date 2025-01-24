@@ -177,3 +177,4 @@ src/adc_sampler
 
 # Generated data
 *.bin
+*.npz
