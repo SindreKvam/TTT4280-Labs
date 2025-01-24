@@ -3,9 +3,15 @@
 import logging
 
 import rpyc
-import matplotlib.pyplot as plt
 import numpy as np
 
+
+import matplotlib
+
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
+
+print("Using:", matplotlib.get_backend())
 
 logger = logging.getLogger(__name__)
 
