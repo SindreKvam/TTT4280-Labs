@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def sample_value_to_voltage(value: int) -> float:
     """Convert an ADC sample value to a voltage."""
-    return value * (V_REF / (2**ADC_RESOLUTION - 1))
+    return value * (V_REF / (2**ADC_RESOLUTION))
 
 
 def dc_block(data: np.ndarray) -> np.ndarray:
@@ -43,8 +43,6 @@ def plot_data_channels(data: np.ndarray, sample_period: float) -> None:
 
     fig.supxlabel("Time (ms)")
     fig.supylabel("Voltage (V)", rotation="vertical")
-
-    # ax[-1].set_xlabel("Time (ms)")
 
     fig.suptitle("ADC Data")
 
