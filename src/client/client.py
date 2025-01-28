@@ -1,42 +1,38 @@
 """This module contains the client class that will communicate with the server."""
 
-from common import sample_value_to_voltage, dc_block, plot_data_channels
-
 import logging
+import time
+
+from common import sample_value_to_voltage, dc_block, V_REF
 
 import rpyc
 import numpy as np
+import dwfpy as dwf
 
-
-import matplotlib
-
-matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
-
-print("Using:", matplotlib.get_backend())
 
 logger = logging.getLogger(__name__)
 
 
-if __name__ == "__main__":
-    conn = rpyc.connect("rpi32.local", 18861, config={"allow_pickle": True})
-    sample_period, data = conn.root.run_adc_sample(31_260)
+def run_measurement_and_save_to_file(
+    pi_connection, filename: str = "adc_data.npz"
+) -> None:
+    """Run a measurement on the Raspberry Pi and save the data to a file."""
+
+    sample_period, data = pi_connection.root.run_adc_sample(31_260)
 
     # Make a local copy of the data
     local_data = np.array(data)
     # Remove the first few samples as the start gives random values.
     local_data = local_data[10:]
     local_sample_period = float(sample_period)
-    print(f"Sample period: {sample_period}")
+    logger.debug(f"Sample period: {sample_period}")
 
-    conn.close()
-
-    print(f"Data: {local_data}")
-    print(f"Data type: {type(local_data)}")
-    print(f"Data shape: {local_data.shape}")
+    logger.debug(f"Data: {local_data}")
+    logger.debug(f"Data type: {type(local_data)}")
+    logger.debug(f"Data shape: {local_data.shape}")
     local_data = local_data.T
 
-    print(f"Data: {local_data}")
+    logger.debug(f"Data: {local_data}")
 
     # Turn the data into voltages and remove DC offset.
     data_voltage = []
@@ -48,11 +44,28 @@ if __name__ == "__main__":
 
     # Save the data to a file that can be used for later analysis
     np.savez(
-        "output_data/adc_data.npz",
+        f"output_data1/{filename}",
         sample_period=np.float64(local_sample_period),
         data=data_voltage,
     )
 
-    # Often want to see what we have measured immediately.
-    plot_data_channels(data_voltage, local_sample_period)
-    plt.show()
+
+if __name__ == "__main__":
+    conn = rpyc.connect("rpi32.local", 18861, config={"allow_pickle": True})
+
+    run_measurement_and_save_to_file(conn)
+
+    # Connect to the Analog Discovery 2
+    with dwf.Device() as device:
+
+        for f in np.logspace(1, 6, 100):
+
+            print(f"Generating a {f:.2f}Hz sine wave on WaveGen channel 1...")
+            device.analog_output["ch1"].setup(
+                "sine", frequency=f, amplitude=V_REF / 2, offset=V_REF / 2, start=True
+            )
+            time.sleep(0.2)
+
+            run_measurement_and_save_to_file(conn, filename=f"adc_data_{f:.2f}Hz.npz")
+
+    conn.close()
