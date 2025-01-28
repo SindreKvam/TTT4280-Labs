@@ -44,7 +44,7 @@ def run_measurement_and_save_to_file(
 
     # Save the data to a file that can be used for later analysis
     np.savez(
-        f"output_data1/{filename}",
+        f"output_data/{filename}",
         sample_period=np.float64(local_sample_period),
         data=data_voltage,
     )
