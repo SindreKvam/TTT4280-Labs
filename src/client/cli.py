@@ -1,6 +1,12 @@
 """Command line interface for the client module."""
 
-from common import plt, plot_data_channels, plot_fft_channels, calculate_power
+from common import (
+    plt,
+    plot_data_channels,
+    plot_fft_channels,
+    calculate_power,
+    listen_to_signal,
+)
 
 import argparse
 import logging
@@ -40,6 +46,12 @@ if __name__ == "__main__":
         help="Calculate the SNR.",
         default=False,
     )
+    parser.add_argument(
+        "--listen",
+        action=argparse.BooleanOptionalAction,
+        help="Listen to the signal.",
+        default=False,
+    )
     args = parser.parse_args()
 
     sample_period, data = np.load(args.signal_filename).values()
@@ -52,6 +64,9 @@ if __name__ == "__main__":
     if args.plot:
         plot_data_channels(data, sample_period)
         plot_fft_channels(data, sample_period)
+
+    if args.listen:
+        listen_to_signal(data, sample_period)
 
     snr = np.zeros(data.shape[0])
     if args.snr:

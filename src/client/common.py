@@ -7,6 +7,8 @@ import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
+import sounddevice as sd
+
 V_REF = 3.3  # Reference voltage for the ADC
 ADC_RESOLUTION = 12  # ADC resolution in bits
 
@@ -35,6 +37,28 @@ def plot_data_channels(data: np.ndarray, sample_period: float) -> None:
 
     fig, ax = plt.subplots(5, 1, tight_layout=True, sharex=True)
     for i, data_channel in enumerate(data):
+
+        ax[i].plot(t_ms, data_channel, f"C{i}", label=f"Channel {i+1}")
+        ax[i].grid()
+        ax[i].legend()
+        ax[i].set_ylim(-V_REF / 2 - V_REF * 0.1, V_REF / 2 + V_REF * 0.1)
+
+    fig.supxlabel("Time (ms)")
+    fig.supylabel("Voltage (V)", rotation="vertical")
+
+    fig.suptitle("ADC Data")
+
+
+def listen_to_signal(data: np.ndarray, sample_period: float) -> None:
+    """Listen to the signal from the ADCs."""
+
+    t_ms = np.linspace(0, sample_period * data.shape[1], data.shape[1]) * 1e3
+
+    fig, ax = plt.subplots(5, 1, tight_layout=True, sharex=True)
+    for i, data_channel in enumerate(data):
+
+        sd.play(data_channel, int(1 / sample_period))
+        sd.wait()
 
         ax[i].plot(t_ms, data_channel, f"C{i}", label=f"Channel {i+1}")
         ax[i].grid()
