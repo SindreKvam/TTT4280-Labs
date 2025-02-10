@@ -79,7 +79,7 @@ def generate_psd(
     nfft: int = 31_250,
     window_func=signal.windows.boxcar,
 ) -> None:
-    """"""
+    """Generate the Power Spectral Density (PSD) of the data."""
 
     # Add window function
     data = data * window_func(len(data))
@@ -88,11 +88,28 @@ def generate_psd(
     data_fft = np.fft.fft(data, n=nfft, norm=None)
     data_fft = np.abs(data_fft[: len(data_fft) // 2])
     data_psd = np.abs(data_fft * data_fft)
-    psd_normalized = np.abs(data_psd / np.sum(data_psd))
+    psd = np.abs(data_psd / np.sum(data_psd))
 
     f = np.linspace(0, 1 / (2 * sample_period), len(data_psd))
 
-    return f, psd_normalized
+    return f, psd
+
+
+def calculate_snr_from_psd(f: np.ndarray, psd: np.ndarray, *, width: float) -> float:
+    """Calculate the Signal to Noise Ratio (SNR) from the PSDs of the signal and noise.
+    psd: The Power Spectral Density (PSD) of the signal."""
+
+    peak_frequency = np.argmax(psd)
+    max_frequency = int(np.ceil(peak_frequency * (1 + width)))
+    min_frequency = int(np.floor(peak_frequency * (1 - width)))
+
+    print(f"Frequency range for signal: {f[min_frequency]:.2f} - {f[max_frequency]:.2f}")
+
+    peak_power = np.sum(psd[min_frequency:max_frequency])
+    noise_power = np.sum(psd) - peak_power
+
+    # return peak_power / noise_power
+    return 10 * np.log10(peak_power / noise_power)
 
 
 def plot_fft_channels(data: np.ndarray, sample_period: float) -> None:
@@ -101,42 +118,45 @@ def plot_fft_channels(data: np.ndarray, sample_period: float) -> None:
     fig, ax = plt.subplots(5, 1, tight_layout=True, sharex=True)
     for i, data_channel in enumerate(data):
 
-        # FFT of the data
-        ax[i].plot(
-            *generate_psd(
-                data_channel, sample_period, nfft=31250, window_func=signal.windows.boxcar
-            ),
-            label=f"Channel {i+1}",
+        # PSD of the data
+        f, psd = generate_psd(
+            data_channel, sample_period, nfft=31250, window_func=signal.windows.boxcar
         )
+        snr = calculate_snr_from_psd(f, psd, width=0.05)
+        ax[i].plot(f, 10 * np.log10(psd), label=f"PSD, SNR: {snr:.2f} dB")
 
         # Zero padding up to 2^17
-        ax[i].plot(
-            *generate_psd(
-                data_channel, sample_period, nfft=2**17, window_func=signal.windows.boxcar
-            ),
-            label=f"Channel {i+1} zero-padded",
+        f, psd = generate_psd(
+            data_channel, sample_period, nfft=2**17, window_func=signal.windows.boxcar
         )
+        snr = calculate_snr_from_psd(f, psd, width=0.05)
+        ax[i].plot(f, 10 * np.log10(psd), label=f"Zero-padded, SNR: {snr:.2f} dB")
 
         # Window function of the data
-        ax[i].plot(
-            *generate_psd(
-                data_channel, sample_period, nfft=31250, window_func=signal.windows.hann
-            ),
-            label=f"Channel {i+1} windowed",
+        f, psd = generate_psd(
+            data_channel, sample_period, nfft=31250, window_func=signal.windows.hann
         )
+        snr = calculate_snr_from_psd(f, psd, width=0.05)
+        ax[i].plot(f, 10 * np.log10(psd), label=f"Windowed, SNR: {snr:.2f} dB")
 
         # Window function of the data and zero padding
+        f, psd = generate_psd(
+            data_channel, sample_period, nfft=2**17, window_func=signal.windows.hann
+        )
+        snr = calculate_snr_from_psd(f, psd, width=0.05)
         ax[i].plot(
-            *generate_psd(
-                data_channel, sample_period, nfft=2**17, window_func=signal.windows.hann
-            ),
-            label=f"Channel {i+1} windowed and zero padded",
+            f,
+            10 * np.log10(psd),
+            label=f"Windowed and zero-padded, SNR: {snr:.2f} dB",
         )
 
-        ax[i].set_ylabel("Normalized Magnitude")
+        ax[i].set_ylabel("Power Spectral Density (dB)")
         ax[i].grid()
         ax[i].legend()
-        ax[i].set_xlim(990, 1010)
+        ax[i].set_ylim(-120, 20)
+        ax[i].set_title(f"Channel {i+1}")
+        # ax[i].set_xscale("log")
+        ax[i].set_xlim(500, 2000)
 
     ax[-1].set_xlabel("Frequency (Hz)")
 
