@@ -3,6 +3,7 @@
 import logging
 import numpy as np
 import matplotlib
+from scipy import signal
 
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
@@ -71,20 +72,71 @@ def listen_to_signal(data: np.ndarray, sample_period: float) -> None:
     fig.suptitle("ADC Data")
 
 
+def generate_psd(
+    data: np.ndarray,
+    sample_period: float,
+    *,
+    nfft: int = 31_250,
+    window_func=signal.windows.boxcar,
+) -> None:
+    """"""
+
+    # Add window function
+    data = data * window_func(len(data))
+
+    # FFT of the data
+    data_fft = np.fft.fft(data, n=nfft, norm=None)
+    data_fft = np.abs(data_fft[: len(data_fft) // 2])
+    data_psd = np.abs(data_fft * data_fft)
+    psd_normalized = np.abs(data_psd / np.sum(data_psd))
+
+    f = np.linspace(0, 1 / (2 * sample_period), len(data_psd))
+
+    return f, psd_normalized
+
+
 def plot_fft_channels(data: np.ndarray, sample_period: float) -> None:
     """Plot the FFT of the data from the ADCs."""
-
-    f = np.fft.fftshift(np.fft.fftfreq(data.shape[1], sample_period))
 
     fig, ax = plt.subplots(5, 1, tight_layout=True, sharex=True)
     for i, data_channel in enumerate(data):
 
-        data_channel_fft = np.fft.fftshift(np.fft.fft(data_channel))
-        ax[i].plot(f, np.abs(data_channel_fft), f"C{i}", label=f"Channel {i+1}")
-        ax[i].set_ylabel("Magnitude")
+        # FFT of the data
+        ax[i].plot(
+            *generate_psd(
+                data_channel, sample_period, nfft=31250, window_func=signal.windows.boxcar
+            ),
+            label=f"Channel {i+1}",
+        )
+
+        # Zero padding up to 2^17
+        ax[i].plot(
+            *generate_psd(
+                data_channel, sample_period, nfft=2**17, window_func=signal.windows.boxcar
+            ),
+            label=f"Channel {i+1} zero-padded",
+        )
+
+        # Window function of the data
+        ax[i].plot(
+            *generate_psd(
+                data_channel, sample_period, nfft=31250, window_func=signal.windows.hann
+            ),
+            label=f"Channel {i+1} windowed",
+        )
+
+        # Window function of the data and zero padding
+        ax[i].plot(
+            *generate_psd(
+                data_channel, sample_period, nfft=2**17, window_func=signal.windows.hann
+            ),
+            label=f"Channel {i+1} windowed and zero padded",
+        )
+
+        ax[i].set_ylabel("Normalized Magnitude")
         ax[i].grid()
         ax[i].legend()
-        ax[i].set_xlim(-2e3, 2e3)
+        ax[i].set_xlim(990, 1010)
 
     ax[-1].set_xlabel("Frequency (Hz)")
 
