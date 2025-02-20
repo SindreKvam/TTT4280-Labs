@@ -58,7 +58,7 @@ def estimate_angle_of_arrival(data: np.ndarray, sample_frequency: float) -> None
     y = np.sqrt(3) * delay_31 + delay_21
     x = delay_31 - delay_21 + 2 * delay_32
 
-    theta = np.arctan2(y, x)
+    theta = -np.arctan2(y, x)
 
     return np.degrees(theta)
 
