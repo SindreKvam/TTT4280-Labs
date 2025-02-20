@@ -4,7 +4,7 @@ import logging
 
 import rpyc
 import numpy as np
-import scipy.signal as signal
+from scipy import signal
 
 from common import sample_value_to_voltage, dc_block  # pylint: disable=import-error
 
@@ -55,15 +55,10 @@ def estimate_angle_of_arrival(data: np.ndarray, sample_frequency: float) -> None
     logger.debug("Delay 32: %d", delay_32)
 
     # Calculate the angle of arrival
-    y = delay_31 + delay_21
+    y = np.sqrt(3) * delay_31 + delay_21
     x = delay_31 - delay_21 + 2 * delay_32
 
-    theta = np.arctan(np.sqrt(3) * y / x)
-
-    # If the x is negative, add 180 degrees
-    # atan can only return values between -90 and 90 degrees
-    if x < 0:
-        theta += np.pi
+    theta = np.arctan2(y, x)
 
     return np.degrees(theta)
 
