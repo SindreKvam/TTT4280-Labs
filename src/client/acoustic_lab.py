@@ -5,7 +5,6 @@ import logging
 import rpyc
 import numpy as np
 import scipy.signal as signal
-import matplotlib.pyplot as plt
 
 from common import sample_value_to_voltage, dc_block  # pylint: disable=import-error
 
@@ -29,15 +28,12 @@ def estimate_angle_of_arrival(data: np.ndarray, sample_frequency: float) -> None
     # We have three microphones and two channels that are not used.
     mic2, mic3, mic1, _, _ = data
 
-    plt.plot(mic1)
-    plt.plot(mic2)
-    plt.plot(mic3)
-    plt.show()
-
     # Calculate the cross-correlation between the microphones
-    corr_21 = np.abs(np.correlate(mic2, mic1, mode="full"))
-    corr_31 = np.abs(np.correlate(mic3, mic1, mode="full"))
-    corr_32 = np.abs(np.correlate(mic3, mic2, mode="full"))
+    corr_21 = np.correlate(mic2, mic1, mode="full")
+    corr_31 = np.correlate(mic3, mic1, mode="full")
+    corr_32 = np.correlate(mic3, mic2, mode="full")
+
+    lags = signal.correlation_lags(len(mic1), len(mic2))
 
     # Since we know that the maximum sample delay, we can ignore the rest of the cross-correlation
     detection_range = (
@@ -47,20 +43,16 @@ def estimate_angle_of_arrival(data: np.ndarray, sample_frequency: float) -> None
     corr_21 = corr_21[detection_range[0] : detection_range[1]]
     corr_31 = corr_31[detection_range[0] : detection_range[1]]
     corr_32 = corr_32[detection_range[0] : detection_range[1]]
-
-    lags = signal.correlation_lags(len(mic1), len(mic2))[
-        detection_range[0] : detection_range[1]
-    ]
-    print(lags)
+    lags = lags[detection_range[0] : detection_range[1]]
 
     # Calculate the time delay between the microphones
     delay_21 = lags[np.argmax(corr_21)]
     delay_31 = lags[np.argmax(corr_31)]
     delay_32 = lags[np.argmax(corr_32)]
 
-    logger.info("Delay 21: %d", delay_21)
-    logger.info("Delay 31: %d", delay_31)
-    logger.info("Delay 32: %d", delay_32)
+    logger.debug("Delay 21: %d", delay_21)
+    logger.debug("Delay 31: %d", delay_31)
+    logger.debug("Delay 32: %d", delay_32)
 
     # Calculate the angle of arrival
     y = delay_31 + delay_21
@@ -76,9 +68,10 @@ def estimate_angle_of_arrival(data: np.ndarray, sample_frequency: float) -> None
     return np.degrees(theta)
 
 
-def main(rpi_connection, real_time: bool = False, num_samples: int = 1000) -> None:
+def main(rpi_connection, real_time: bool = False, num_samples: int = 3000) -> None:
     """Main loop to perform continous acoustic lab measurements."""
 
+    latest_theta_values = []
     while True:
         # Run the measurement
         data_voltage = []
@@ -94,12 +87,21 @@ def main(rpi_connection, real_time: bool = False, num_samples: int = 1000) -> No
         else:
             # Load data from file
             sample_period, data_voltage = np.load(
-                "acoustic_lab_data/sindre_135deg_1m_5.npz"
+                "acoustic_lab_data/1khz_200deg_30cm.npz"
             ).values()
 
         # Estimate the angle of arrival
         theta = estimate_angle_of_arrival(data_voltage, 1 / sample_period)
         logger.info("Angle of arrival: %f", theta)
+
+        # Moving average and standard deviation of theta values
+        latest_theta_values.append(theta)
+        latest_theta_values = latest_theta_values[-10:]
+        theta_avg = np.mean(latest_theta_values)
+        theta_std = np.std(latest_theta_values, ddof=1)
+
+        logger.info("Average angle of arrival: %f", theta_avg)
+        logger.info("Standard deviation of angle of arrival: %f", theta_std)
 
 
 if __name__ == "__main__":
