@@ -1,17 +1,17 @@
 """Command line interface for the client module."""
 
-from common import (
+import argparse
+import logging
+
+import numpy as np
+
+from common import (  # pylint: disable=import-error
     plt,
     plot_data_channels,
     plot_fft_channels,
     calculate_power,
     listen_to_signal,
 )
-
-import argparse
-import logging
-
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
