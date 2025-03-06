@@ -5,6 +5,7 @@ from subprocess import call
 import logging
 import pathlib
 import time
+import threading
 
 from picamera2 import Picamera2  # pylint: disable=import-error
 from picamera2.encoders import H264Encoder  # pylint: disable=import-error
@@ -186,17 +187,24 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     connectionConfig = {"allow_public_attrs": True, "allow_pickle": True}
-    threads: list[ThreadedServer] = []
 
-    threads.append(
-        ThreadedServer(AdcSamplingService, port=18861, protocol_config=connectionConfig)
+    adc_server = ThreadedServer(
+        AdcSamplingService, port=18861, protocol_config=connectionConfig
     )
-    threads.append(
-        ThreadedServer(
-            CameraSamplingService, port=18862, protocol_config=connectionConfig
-        )
+    camera_server = ThreadedServer(
+        CameraSamplingService, port=18862, protocol_config=connectionConfig
     )
 
     # Start the servers
-    for t in threads:
-        t.start()
+    t1 = threading.Thread(target=adc_server.start, name="ADC Server", daemon=True)
+    t2 = threading.Thread(target=camera_server.start, name="Camera Server", daemon=True)
+
+    t1.start()
+    t2.start()
+
+    # Have the main thread run until the user interrupts the program
+    while True:
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            break
