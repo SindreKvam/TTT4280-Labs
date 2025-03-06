@@ -6,7 +6,6 @@ import logging
 import pathlib
 import time
 import threading
-import shutil
 
 from picamera2 import Picamera2  # pylint: disable=import-error
 from picamera2.encoders import H264Encoder  # pylint: disable=import-error
@@ -110,6 +109,7 @@ class CameraSamplingService(rpyc.Service):
         iso: int = 10,
         frame_rate: int = 40,
         resolution: tuple[int, int] = (1640, 922),
+        awb_gains: tuple[int, int] = (1, 2),
     ):
         """Configure the camera settings.
 
@@ -145,7 +145,7 @@ class CameraSamplingService(rpyc.Service):
         # too low for blue channel (frames constant black).  2 sometimes is not enough,
         # and is related to what happens during the sleep(2) above.  Probably has to be
         # tuned?
-        self.camera.awb_gains = (1, 2)
+        self.camera.awb_gains = awb_gains
 
     def exposed_run_camera_sample(
         self, record_time: int = 30, filename: str = "foo"
