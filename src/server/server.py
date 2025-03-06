@@ -99,6 +99,7 @@ class CameraSamplingService(rpyc.Service):
         # code that runs after the connection has already closed
         logger.info("Connection closed")
         self.camera.close()
+        del self.camera
 
     def exposed_configure_camera(
         self,
@@ -183,6 +184,7 @@ class CameraSamplingService(rpyc.Service):
                 "-c",
                 "copy",
                 mp4_filename,
+                "-y",  # Overwrite the file if it exists
             ]
         )
 
