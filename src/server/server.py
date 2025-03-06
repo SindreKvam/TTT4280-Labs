@@ -6,6 +6,7 @@ import logging
 import pathlib
 import time
 import threading
+import shutil
 
 from picamera2 import Picamera2  # pylint: disable=import-error
 from picamera2.encoders import H264Encoder  # pylint: disable=import-error
@@ -83,6 +84,9 @@ class CameraSamplingService(rpyc.Service):
     """Class to support making recordings using the Raspberry Pi camera."""
 
     camera: Picamera2
+
+    h264_file = None
+    mp4_file = None
 
     def __init__(self) -> None:
         pass
@@ -187,6 +191,29 @@ class CameraSamplingService(rpyc.Service):
                 "-y",  # Overwrite the file if it exists
             ]
         )
+
+    def exposed_open_file(self, filename: str, mode: str = "rb") -> None:
+        """Open the file in the default application.
+
+        Args:
+            filename (str): The name of the file to open.
+        """
+
+        h264_filename = filename + ".h264"
+        mp4_filename = filename + ".mp4"
+
+        self.h264_file = open(h264_filename, mode)
+        self.mp4_file = open(mp4_filename, mode)
+
+        return self.h264_file, self.mp4_file
+
+    def exposed_close_file(self) -> None:
+        """Close the files."""
+        try:
+            self.h264_file.close()
+            self.mp4_file.close()
+        except AttributeError:
+            pass
 
 
 if __name__ == "__main__":
