@@ -1,9 +1,13 @@
 """This module contains a remote procedure call (RPC) service to read from ADCs."""
 
+import subprocess
 from subprocess import call
 import logging
 import pathlib
+import time
 
+from picamera2 import Picamera2  # pylint: disable=import-error
+from picamera2.encoders import H264Encoder  # pylint: disable=import-error
 import rpyc
 from rpyc.utils.server import ThreadedServer
 import numpy as np
@@ -74,10 +78,125 @@ class AdcSamplingService(rpyc.Service):
         return 42
 
 
+class CameraSamplingService(rpyc.Service):
+    """Class to support making recordings using the Raspberry Pi camera."""
+
+    def __init__(self) -> None:
+        self.camera = Picamera2()
+
+        # Set default camera settings
+        self.exposed_configure_camera()
+
+    def on_connect(self, conn):
+        # code that runs when a connection is created
+        logger.info("Connection established")
+
+    def on_disconnect(self, conn):
+        # code that runs after the connection has already closed
+        logger.info("Connection closed")
+
+    def exposed_configure_camera(
+        self,
+        iso: int = 10,
+        frame_rate: int = 40,
+        resolution: tuple[int, int] = (1640, 922),
+    ):
+        """Configure the camera settings.
+
+        Args:
+            iso (int, optional): The ISO setting for the camera. Defaults to 10.
+            frame_rate (int, optional): The frame rate for the camera. Defaults to 40.
+            resolution (tuple[int,int], optional):
+                The resolution for the camera. Defaults to (1640, 922).
+        """
+        self.camera.resolution = resolution
+        self.camera.framerate = frame_rate
+
+        # Set a low ISO. Adjusts the sensitivity of the camera. 0 means auto.
+        # 10 most probably is the same
+        # as 100, as picamera doc says it can only be set to 100, 200, 300, ..., 800.
+        # Might probably want to set this to lowest possible value not equal to 0,
+        # but can also be tuned.
+        self.camera.iso = iso
+
+        # Add a bit of delay here so that the camera has time to adjust its settings.
+        # Skipping this will set a very low exposure and yield black frames, since the
+        # camera needs to adjust the exposure to a high level according to current
+        # light settings before turning off exposure compensation.
+        logging.debug("Waiting for settings to adjust")
+        time.sleep(2)
+
+        # switch these two off so that we can manually control the awb_gains
+        self.camera.exposure_mode = "off"
+        self.camera.awb_mode = "off"
+
+        # Set gain for red and blue channel.  Setting a single number (i.e.
+        # camera.awb_gains = 1) sets the same gain for all channels, but 1 seems to be
+        # too low for blue channel (frames constant black).  2 sometimes is not enough,
+        # and is related to what happens during the sleep(2) above.  Probably has to be
+        # tuned?
+        self.camera.awb_gains = (1, 2)
+
+    def exposed_run_camera_sample(
+        self, record_time: int = 30, filename: str = "foo"
+    ) -> None:
+        """Record a video using the Raspberry Pi camera.
+
+        Args:
+            filename (str, optional): The name of the file to save the video to.
+                Defaults to "foo.h264".
+        """
+
+        h264_filename = filename + ".h264"
+        mp4_filename = filename + ".mp4"
+
+        # Start the preview
+        self.camera.start_preview()
+        time.sleep(5)
+
+        # Start recording
+        self.camera.start_recording(H264Encoder(), h264_filename)
+
+        # Record for the amount of time we want
+        time.sleep(record_time)
+
+        # Stop recording
+        self.camera.stop_recording()
+
+        # Stop the preview
+        self.camera.stop_preview()
+
+        logging.info("Recording finished")
+
+        subprocess.check_output(
+            [
+                "ffmpeg",
+                "-framerate",
+                str(self.camera.framerate),
+                "-i",
+                h264_filename,
+                "-c",
+                "copy",
+                mp4_filename,
+            ]
+        )
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     connectionConfig = {"allow_public_attrs": True, "allow_pickle": True}
-    t = ThreadedServer(AdcSamplingService, port=18861, protocol_config=connectionConfig)
+    threads: list[ThreadedServer] = []
 
-    t.start()
+    threads.append(
+        ThreadedServer(AdcSamplingService, port=18861, protocol_config=connectionConfig)
+    )
+    threads.append(
+        ThreadedServer(
+            CameraSamplingService, port=18862, protocol_config=connectionConfig
+        )
+    )
+
+    # Start the servers
+    for t in threads:
+        t.start()
