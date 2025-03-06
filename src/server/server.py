@@ -82,19 +82,23 @@ class AdcSamplingService(rpyc.Service):
 class CameraSamplingService(rpyc.Service):
     """Class to support making recordings using the Raspberry Pi camera."""
 
+    camera: Picamera2
+
     def __init__(self) -> None:
+        pass
+
+    def on_connect(self, conn):
+        # code that runs when a connection is created
+        logger.info("Connection established")
         self.camera = Picamera2()
 
         # Set default camera settings
         self.exposed_configure_camera()
 
-    def on_connect(self, conn):
-        # code that runs when a connection is created
-        logger.info("Connection established")
-
     def on_disconnect(self, conn):
         # code that runs after the connection has already closed
         logger.info("Connection closed")
+        self.camera.close()
 
     def exposed_configure_camera(
         self,
