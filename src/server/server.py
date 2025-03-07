@@ -189,7 +189,7 @@ class CameraSamplingService(rpyc.Service):
             ]
         )
 
-    def exposed_open_file(self, filename: str, mode: str = "rb") -> None:
+    def exposed_open_file(self, filename: str) -> None:
         """Open the file in the default application.
 
         Args:
@@ -199,8 +199,8 @@ class CameraSamplingService(rpyc.Service):
         h264_filename = filename + ".h264"
         mp4_filename = filename + ".mp4"
 
-        self.h264_file = open(h264_filename, mode, encoding="utf-8")
-        self.mp4_file = open(mp4_filename, mode, encoding="utf-8")
+        self.h264_file = open(h264_filename, "rb")
+        self.mp4_file = open(mp4_filename, "rb")
 
         return self.h264_file, self.mp4_file
 
