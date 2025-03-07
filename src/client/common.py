@@ -8,6 +8,9 @@ from scipy import signal
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
+font = {"family": "normal", "size": 12}
+matplotlib.rc("font", **font)
+
 import sounddevice as sd
 
 V_REF = 3.3  # Reference voltage for the ADC
@@ -115,49 +118,60 @@ def calculate_snr_from_psd(f: np.ndarray, psd: np.ndarray, *, width: float) -> f
 def plot_fft_channels(data: np.ndarray, sample_period: float) -> None:
     """Plot the FFT of the data from the ADCs."""
 
-    fig, ax = plt.subplots(5, 1, tight_layout=True, sharex=True)
+    signal_freq_width = 0.01
+
+    plt.figure(tight_layout=True)
+
+    # fig, ax = plt.subplots(5, 1, tight_layout=True, sharex=True)
     for i, data_channel in enumerate(data):
 
         # PSD of the data
         f, psd = generate_psd(
             data_channel, sample_period, nfft=31250, window_func=signal.windows.boxcar
         )
-        snr = calculate_snr_from_psd(f, psd, width=0.05)
-        ax[i].plot(f, 10 * np.log10(psd), label=f"PSD, SNR: {snr:.2f} dB")
+        snr = calculate_snr_from_psd(f, psd, width=signal_freq_width)
+        plt.plot(f, 10 * np.log10(psd), label=f"PSD, SNR: {snr:.2f} dB")
+
+        peak_frequency = np.argmax(psd)
+        min_frequency = int(np.floor(peak_frequency * (1 - signal_freq_width)))
+        max_frequency = int(np.ceil(peak_frequency * (1 + signal_freq_width)))
+
+        plt.axvline(f[min_frequency], color="red", linestyle="--")
+        plt.axvline(f[max_frequency], color="red", linestyle="--")
+        plt.axvspan(f[min_frequency], f[max_frequency], color="red", alpha=0.1)
 
         # Zero padding up to 2^17
         f, psd = generate_psd(
             data_channel, sample_period, nfft=2**17, window_func=signal.windows.boxcar
         )
-        snr = calculate_snr_from_psd(f, psd, width=0.05)
-        ax[i].plot(f, 10 * np.log10(psd), label=f"Zero-padded, SNR: {snr:.2f} dB")
+        snr = calculate_snr_from_psd(f, psd, width=signal_freq_width)
+        plt.plot(f, 10 * np.log10(psd), label=f"Zero-padded, SNR: {snr:.2f} dB")
 
         # Window function of the data
         f, psd = generate_psd(
             data_channel, sample_period, nfft=31250, window_func=signal.windows.hann
         )
-        snr = calculate_snr_from_psd(f, psd, width=0.05)
-        ax[i].plot(f, 10 * np.log10(psd), label=f"Windowed, SNR: {snr:.2f} dB")
+        snr = calculate_snr_from_psd(f, psd, width=signal_freq_width)
+        plt.plot(f, 10 * np.log10(psd), label=f"Windowed, SNR: {snr:.2f} dB")
 
         # Window function of the data and zero padding
         f, psd = generate_psd(
             data_channel, sample_period, nfft=2**17, window_func=signal.windows.hann
         )
-        snr = calculate_snr_from_psd(f, psd, width=0.05)
-        ax[i].plot(
-            f,
-            10 * np.log10(psd),
-            label=f"Windowed and zero-padded, SNR: {snr:.2f} dB",
+        snr = calculate_snr_from_psd(f, psd, width=signal_freq_width)
+        plt.plot(
+            f, 10 * np.log10(psd), label=f"Windowed and zero-padded, SNR: {snr:.2f} dB"
         )
 
-        ax[i].set_ylabel("Power Spectral Density (dB)")
-        ax[i].grid()
-        ax[i].legend()
-        ax[i].set_ylim(-120, 20)
-        ax[i].set_title(f"Channel {i+1}")
+        plt.ylabel("Power Spectral Density (dB)")
+        plt.grid()
+        plt.legend()
+        plt.ylim(-120, 20)
+        plt.title(f"Channel {i+1}")
         # ax[i].set_xscale("log")
-        ax[i].set_xlim(500, 2000)
+        plt.xlim(900, 1200)
 
-    ax[-1].set_xlabel("Frequency (Hz)")
+        plt.xlabel("Frequency (Hz)")
+        break
 
-    fig.suptitle("ADC Data FFT")
+    # fig.suptitle("ADC Data FFT")
