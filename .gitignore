@@ -176,5 +176,4 @@ cython_debug/
 src/adc_sampler
 
 # Generated data
-*.bin
-*.npz
+output_data/*
