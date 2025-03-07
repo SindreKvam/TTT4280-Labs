@@ -75,9 +75,6 @@ class AdcSamplingService(rpyc.Service):
         # Parse the binary file
         return self.__parse_binary(filename)
 
-    def exposed_get_answer(self):
-        return 42
-
 
 class CameraSamplingService(rpyc.Service):
     """Class to support making recordings using the Raspberry Pi camera."""
@@ -202,8 +199,8 @@ class CameraSamplingService(rpyc.Service):
         h264_filename = filename + ".h264"
         mp4_filename = filename + ".mp4"
 
-        self.h264_file = open(h264_filename, mode)
-        self.mp4_file = open(mp4_filename, mode)
+        self.h264_file = open(h264_filename, mode, encoding="utf-8")
+        self.mp4_file = open(mp4_filename, mode, encoding="utf-8")
 
         return self.h264_file, self.mp4_file
 
