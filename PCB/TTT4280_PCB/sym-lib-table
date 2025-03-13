@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "max4466")(type "KiCad")(uri "../library/symbols/max4466.kicad_sym")(options "")(descr ""))
+)
