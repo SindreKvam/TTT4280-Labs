@@ -1,4 +1,4 @@
-"""Command line interface for the client module."""
+"""Command line interface to run measurements related to acoustic lab."""
 
 import argparse
 import logging
